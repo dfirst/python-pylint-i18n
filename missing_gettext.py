@@ -207,7 +207,23 @@ class MissingGettextChecker(BaseChecker):
             lambda x: x == '',
 
             # some strings we use
-            lambda x: x in ['POST', 'agency', 'promoter', 'venue', 'utf-8'],
+            lambda x: x in [
+                'POST', 'agency', 'promoter', 'venue', 'utf-8',
+                #CA ignors
+                'True', 'False', 'false', 'true', 'None', 'none', 'json',
+                'api', 'kwargs', 'args', 'kwarg', 'arg', 'r', '%r', 'instance',
+                'bundle', 'pk', 'class', 'jsonp', 'xml', 'yaml', 'html', 'csv',
+                'text/javascript', 'application/xml', 'text/yaml', 'text/html',
+                'text/csv', 'text/plain', 'null', 'control-label'
+            ],
+
+            # CA custom ignors
+            lambda x: ' ' not in x and '_' in x,
+            lambda x: ' ' not in x and '.' in x,
+            lambda x: ' ' not in x and 'span' in x,
+            lambda x: ' ' not in x and 'multipart/form-data' in x,
+            lambda x: ' ' not in x and 'application/json' in x,
+            lambda x: ' ' not in x and x.startswith("--"),
 
             # This string is probably used as a key or something, and should
             # be ignored
@@ -273,7 +289,12 @@ class MissingGettextChecker(BaseChecker):
                         'search_fields', 'actions', 'unique_together',
                         'db_table', 'custom_filters', 'search_fields',
                         'custom_date_list_filters', 'export_fields',
-                        'date_hierarchy'])),
+                        'date_hierarchy',
+                        #CA ignors
+                        'true_value', 'false_value', 'resource_name',
+                        'filtering', 'detail_uri_name', 'excludes',
+                        'use_fields', 'detail_allowed_methods',
+                        'list_allowed_methods'])),
 
             # Just a random doc-string-esque string in the code
             (Discard, lambda curr_node, node: curr_node.value == node),
@@ -328,12 +349,15 @@ class MissingGettextChecker(BaseChecker):
                     and curr_node.func.attrname in [
                     'has_key', 'pop', 'order_by', 'strftime', 'strptime',
                     'get', 'select_related', 'values', 'filter',
-                    'values_list'])),
+                    'values_list',
+                    # CA ignors
+                    'prefetch_related', '_hydrate_mtm'])),
             # logging.info('shouldignore')
             (CallFunc,
              lambda curr_node,
-             node: curr_node.func.expr.name in ['logging']),
-
+             node: curr_node.func.expr.name in ['logging', 'logger']),
+            # ignore print statements
+            (Print, lambda curr_node, node: True),
 
             # hasattr(..., 'should ignore')
             # HttpResponseRedirect('/some/url/shouldnt/care')
@@ -377,7 +401,8 @@ class MissingGettextChecker(BaseChecker):
                     if (hasattr(curr_node, 'func')
                             and hasattr(curr_node.func, 'name')):
                         if (curr_node.func.name in [
-                                '_', 'ungettext', 'ungettext_lazy']):
+                                '_', 'ungettext', 'ungettext_lazy',
+                                'ugettext', 'ugettext_lazy']):
                             # we're in a _() call
                             string_ok = True
                             break
